@@ -32,7 +32,7 @@ interface DebugLog {
 const Debugger: React.FC = () => {
   const [logs, setLogs] = useState<DebugLog[]>([]);
   const [consoleInput, setConsoleInput] = useState("");
-  const [networkStatus, setNetworkStatus] = useState<
+  const [networkStatus] = useState<
     "connected" | "disconnected" | "connecting"
   >("connected");
   const [contractAddress, setContractAddress] = useState("");

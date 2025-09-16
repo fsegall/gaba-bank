@@ -69,7 +69,10 @@ export const onboardingStorage = {
   },
 
   load: (): OnboardingData | null => {
-    const data = storage.get(STORAGE_KEYS.ONBOARDING_DATA, null);
+    const data = storage.get<OnboardingData | null>(
+      STORAGE_KEYS.ONBOARDING_DATA,
+      null,
+    );
     if (!data) return null;
 
     // Convert ISO strings back to Date objects
@@ -96,7 +99,7 @@ export const walletStorage = {
   },
 
   load: (): WalletState | null => {
-    return storage.get(STORAGE_KEYS.WALLET_STATE, null);
+    return storage.get<WalletState | null>(STORAGE_KEYS.WALLET_STATE, null);
   },
 
   clear: (): void => {
@@ -111,7 +114,7 @@ export const preferencesStorage = {
   },
 
   load: (): UserPreferences => {
-    return storage.get(STORAGE_KEYS.USER_PREFERENCES, {});
+    return storage.get<UserPreferences>(STORAGE_KEYS.USER_PREFERENCES, {});
   },
 
   clear: (): void => {

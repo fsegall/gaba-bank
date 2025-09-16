@@ -180,10 +180,10 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Root: CalendarRoot,
-        Chevron: CalendarChevron,
-        DayButton: CalendarDayButton,
-        WeekNumber: CalendarWeekNumber,
+        Root: CalendarRoot as any,
+        Chevron: CalendarChevron as any,
+        DayButton: CalendarDayButton as any,
+        WeekNumber: CalendarWeekNumber as any,
         ...components,
       }}
       {...props}

@@ -1,9 +1,13 @@
 import React from "react";
-import { Button, ButtonProps } from "./ui/button";
+import { Button, buttonVariants } from "./ui/button";
+import type { VariantProps } from "class-variance-authority";
 import { useWalletGuard } from "../hooks/useWalletGuard";
 import { WalletConnectionDialog } from "./WalletConnectionDialog";
 
-interface ProtectedButtonProps extends Omit<ButtonProps, "onClick"> {
+type ButtonBaseProps = React.ComponentProps<"button"> &
+  VariantProps<typeof buttonVariants> & { asChild?: boolean };
+
+interface ProtectedButtonProps extends Omit<ButtonBaseProps, "onClick"> {
   onClick?: () => void;
   feature?: string;
   walletRequiredTitle?: string;

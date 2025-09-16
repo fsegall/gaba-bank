@@ -19,6 +19,7 @@ interface SwapCardProps {
   receiveToken: string;
   setReceiveToken: (token: string) => void;
   receiveAmount: string;
+  setReceiveAmount: (amount: string) => void;
   handleSwap: () => void;
 }
 

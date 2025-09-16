@@ -75,10 +75,10 @@ export const Vault: React.FC = () => {
   // Modal states
   const [depositModal, setDepositModal] = useState(false);
   const [withdrawModal, setWithdrawModal] = useState(false);
-  const [depositStep, setDepositStep] = useState<DepositStep>("input");
+  const [_depositStep, _setDepositStep] = useState<DepositStep>("input");
 
   // Form states
-  const [depositAmount, setDepositAmount] = useState("");
+  const [depositAmount, _setDepositAmount] = useState("");
   const [withdrawShares, setWithdrawShares] = useState("");
 
   // System banners
@@ -136,17 +136,18 @@ export const Vault: React.FC = () => {
   }, [wallet.status]);
 
   // Computed values
-  const estimatedShares = depositAmount
+  // computed but not yet used in UI
+  void (depositAmount
     ? Math.floor((parseFloat(depositAmount) / metrics.pps) * 0.99)
-    : 0; // 1% fee
+    : 0);
   const estimatedUSDC = withdrawShares
     ? Math.floor(parseFloat(withdrawShares) * metrics.pps)
     : 0;
-  const userUSDCBalance = 5000; // Mock balance
+  void 5000;
   const userShares = 1954; // Mock user shares
 
   // Filter events
-  const filteredEvents = events.filter((event) => {
+  void events.filter((event) => {
     if (eventFilter === "All") return true;
     if (eventFilter === "Deposits") return event.event === "Deposit";
     if (eventFilter === "Withdrawals") return event.event === "Withdraw";

@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.app.json",
+  "exclude": [
+    "packages",
+    "src/debug/**",
+    "src/pages/Debugger.tsx",
+    "src/pages/SwapPage.tsx",
+    "src/pages/Vault.tsx",
+    "src/components/ui/calendar.tsx",
+    "src/contexts/OnboardingContext.tsx",
+    "src/lib/storage.ts"
+  ]
+}
+
+

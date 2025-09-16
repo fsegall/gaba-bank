@@ -258,7 +258,7 @@ export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({
     console.log("Submitting application:", data);
 
     // Simulate API submission
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       setTimeout(() => {
         resolve();
       }, 2000);

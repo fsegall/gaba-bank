@@ -7,7 +7,7 @@
     "dev": "concurrently \"stellar scaffold watch --build-clients\" \"tsc -w -p tsconfig.dev.json\" \"vite\"",
     "dev:fast": "concurrently \"stellar scaffold watch --build-clients\" \"vite\"",
     "start": "concurrently \"stellar scaffold watch --build-clients\" \"vite\"",
-    "build": "tsc -b && vite build",
+    "build": "tsc -p tsconfig.build.json --noEmit && vite build",
     "install:contracts": "npm install --workspace=packages && npm run build --workspace=packages",
     "preview": "vite preview",
     "lint": "eslint .",
