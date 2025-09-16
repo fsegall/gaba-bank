@@ -1,0 +1,4 @@
+-- provider_events
+update provider_events set provider = 'soroban' where provider = 'self';
+-- vault_events
+update vault_events set provider = 'soroban' where provider = 'self';

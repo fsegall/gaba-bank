@@ -1,0 +1,16 @@
+[package]
+name = "defy_vault"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "defy_vault"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"   # ou "src/vault-soroban.rs" se for o seu arquivo
+
+[dependencies]
+# Alinhar com o toolchain atual
+soroban-sdk = { version = "23.0.2", default-features = false }
+
+[dev-dependencies]
+soroban-sdk = { version = "23.0.2", features = ["testutils"] }

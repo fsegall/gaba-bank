@@ -1,0 +1,36 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/main.tsx",
+    "src/App.tsx",
+    "src/pages/DefyTestPage.tsx",
+    "src/components/**/*.ts",
+    "src/components/**/*.tsx",
+    "src/contexts/**/*.ts",
+    "src/contexts/**/*.tsx",
+    "src/hooks/**/*.ts",
+    "src/hooks/**/*.tsx",
+    "src/lib/**/*.ts",
+    "src/lib/**/*.tsx",
+    "src/util/**/*.ts",
+    "src/util/**/*.tsx",
+    "src/providers/**/*.ts",
+    "src/providers/**/*.tsx"
+  ],
+  "exclude": [
+    "packages",
+    "src/debug/**",
+    "src/pages/Debugger.tsx",
+    "src/pages/SwapPage.tsx",
+    "src/pages/Vault.tsx",
+    "src/components/ui/calendar.tsx",
+    "src/components/ProtectedButton.tsx",
+    "src/lib/storage.ts"
+  ]
+}
+
+

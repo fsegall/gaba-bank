@@ -1,0 +1,1 @@
+export const SOROSWAP_ONCHAIN_DEC = Number(process.env.SOROSWAP_ONCHAIN_DEC ?? 7);

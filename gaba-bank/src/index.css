@@ -1,0 +1,284 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* TabaDAO Theme - Terra Digital: A warm, natural, and trustworthy palette */
+:root {
+  --radius: 0.5rem;
+  --font-sans: Inter, sans-serif;
+  --font-display: Poppins, sans-serif;
+
+  /* Radius variants */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Terra Digital Color Palette */
+  --earth-700: #3e322a;
+  --earth-800: #2a211c;
+  --earth-900: #1f1915;
+  --sun-400: #ffca28;
+  --sun-500: #ffc107;
+  --sun-600: #ffb300;
+  --sand-200: #f5f2ed;
+  --sand-300: #e0dcd5;
+  --clay-400: #b0a69c;
+  --clay-500: #8c8279;
+  --forest-500: #4caf50;
+  --forest-700: #388e3c;
+  --river-500: #2196f3;
+  --river-600: #1976d2;
+  --red-400: #f87171;
+  --red-500: #ef4444;
+
+  /* Theme Colors */
+  --background: var(--earth-800);
+  --foreground: var(--sand-200);
+  --card: var(--earth-700);
+  --card-foreground: var(--sand-200);
+  --popover: var(--earth-700);
+  --popover-foreground: var(--sand-200);
+  --primary: var(--sun-500);
+  --primary-foreground: var(--earth-800);
+  --secondary: var(--earth-700);
+  --secondary-foreground: var(--sand-200);
+  --muted: var(--clay-400);
+  --muted-foreground: var(--clay-500);
+  --accent: var(--forest-500);
+  --accent-foreground: var(--sand-200);
+  --destructive: var(--red-500);
+  --destructive-foreground: var(--sand-200);
+  --border: rgba(245, 242, 237, 0.1);
+  --input: rgba(245, 242, 237, 0.1);
+  --ring: var(--sun-500);
+
+  /* Chart colors */
+  --chart-1: var(--sun-500);
+  --chart-2: var(--forest-500);
+  --chart-3: var(--river-500);
+  --chart-4: var(--clay-400);
+  --chart-5: var(--sand-300);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: var(--font-sans);
+  }
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+/* Accordion animations */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+/* Custom animations */
+@keyframes slide-in-bottom {
+  0% {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-left {
+  0% {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in-up {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-down {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 1s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-fade-out {
+  animation: fade-out 0.3s ease-in forwards;
+}
+
+.animate-slide-in-up {
+  animation: slide-in-up 0.3s ease-out forwards;
+}
+
+.animate-slide-out-down {
+  animation: slide-out-down 0.3s ease-in forwards;
+}
+
+/* Custom button styles */
+.btn {
+  @apply inline-flex items-center justify-center rounded-lg px-5 py-2.5 text-sm font-semibold transition-all duration-300 outline-none;
+}
+
+.btn-lg {
+  @apply px-8 py-3.5 text-base;
+}
+
+.btn-primary {
+  background-color: var(--sun-500);
+  color: var(--earth-800);
+  box-shadow: 0 0 15px 0 rgba(255, 193, 7, 0.3);
+}
+
+.btn-primary:hover {
+  background-color: var(--sun-400);
+  transform: translateY(-1px);
+  box-shadow: 0 0 30px 0 rgba(255, 193, 7, 0.4);
+}
+
+.btn-primary:disabled {
+  background-color: rgba(255, 193, 7, 0.5);
+  color: rgba(42, 33, 28, 0.7);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: var(--earth-700);
+  color: var(--sand-200);
+  border: 1px solid rgba(245, 242, 237, 0.1);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(62, 50, 42, 0.8);
+}
+
+.y2k-btn {
+  background-color: rgba(62, 50, 42, 0.6);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(245, 242, 237, 0.1);
+  color: var(--sand-200);
+  font-weight: 600;
+  border-radius: 0.5rem;
+  font-size: 14px;
+  text-transform: uppercase;
+  transition: all 0.3s;
+  width: 120px;
+  height: 45px;
+  outline: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.y2k-btn:hover {
+  background-color: rgba(62, 50, 42, 0.8);
+  border-color: rgba(255, 193, 7, 0.5);
+  transform: translateY(-0.25rem);
+}
+
+/* Custom glow effects */
+.shadow-glow-sun {
+  box-shadow: 0 0 15px 0 rgba(255, 193, 7, 0.3);
+}
+
+.shadow-glow-sun-lg {
+  box-shadow: 0 0 30px 0 rgba(255, 193, 7, 0.4);
+}
+
+/* Selection styling */
+::selection {
+  background-color: var(--sun-500);
+  color: var(--earth-800);
+}

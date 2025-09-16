@@ -1,0 +1,158 @@
+services:
+  api:
+    build: .
+    env_file:
+      - ./.env.docker         # <- use este
+    environment:
+      - DEFY_API_TOKEN=devtoken
+      - NODE_ENV=production
+      # Anchor (DNS interno)
+      - ANCHOR_AUTH_URL=http://anchor:8080/auth
+      - ANCHOR_TRANSFER_SERVER_URL=http://anchor:8080/sep24
+      - ANCHOR_KYC_SERVER_URL=http://anchor:8080/sep12
+      # Tesouraria
+      - STELLAR_TREASURY_PUBLIC=GAN2EYOY5JPIG24HUH3FEQQSFDGNPRZAIN272GPZX6MXEMY7FI7GPUH4
+      - STELLAR_TREASURY_SECRET_FILE=/run/secrets/stellar_treasury_secret
+    volumes:
+      - ../ops/secrets:/run/secrets:ro
+      - ../secrets/inter:/app/secrets/inter:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      anchor: 
+        condition: service_healthy
+    ports: ["8080:8080"]   
+    networks: ["default"]
+
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: defy
+      POSTGRES_PASSWORD: defy
+      POSTGRES_DB: defy
+    ports: ["5433:5432"]
+    # volumes:
+    #   - defy_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U defy -d defy"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks: ["default"]
+
+  migrator:
+    image: postgres:14
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./sql:/app/sql:ro
+      - ./docker/migrate.sh:/migrate.sh:ro
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: defy
+      PGPASSWORD: defy
+      PGDATABASE: defy
+      SQL_DIR: /app/sql
+    entrypoint: ["/bin/sh", "-lc", "/migrate.sh"]
+    networks: ["default"]
+
+  pgweb:
+    image: sosedoff/pgweb
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGWEB_DATABASE_URL: postgres://defy:defy@db:5432/defy?sslmode=disable
+    ports: ["8081:8081"]
+    networks: ["default"]
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ../ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../ops/secrets/api_metrics_token:/etc/prometheus/secrets/api_metrics_token:ro
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["9090:9090"]
+    networks: ["default"]
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports: ["3000:3000"]
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on: [prometheus]
+    networks: ["default"]
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    networks: ["default"]
+
+  anchor-db:
+    image: postgres:14
+    env_file: ./.env.anchor.local
+    # OU defina explícito:
+    # environment:
+    #   POSTGRES_USER: anchor
+    #   POSTGRES_PASSWORD: anchor
+    #   POSTGRES_DB: anchor
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-anchor} -d ${POSTGRES_DB:-anchor}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  anchor:
+    image: stellar/anchor-platform:4.0.0
+    command: --sep-server
+    env_file:
+      - ./.env.anchor.local
+    ports:
+      - "8082:8080"  
+    environment:
+      - ASSETS_TYPE=file
+      - ASSETS_VALUE=/home/anchor-config/dev.assets.yaml
+      # mantenha aqui SEP1_*, SEP10_*, SEP12_*, SEP24_*, HOST_URL, CALLBACK_BASE_URL se não estiverem no env_file
+    depends_on:
+      anchor-db:
+        condition: service_healthy
+    volumes:
+      - ./anchor-config:/home/anchor-config:ro
+    healthcheck:
+      test: >
+        bash -lc "exec 3<>/dev/tcp/127.0.0.1/8080 &&
+                  printf 'GET /.well-known/stellar.toml HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 &&
+                  head -n1 <&3 | grep ' 200 '"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+
+  anchor-platform:
+    image: stellar/anchor-platform:4.0.0
+    command: --platform-server
+    env_file:
+      - ./.env.anchor.local            # 👈 adicione isto para herdar DATA_* também
+    environment:
+      - ASSETS_TYPE=file
+      - ASSETS_VALUE=/home/anchor-config/dev.assets.yaml
+    depends_on:
+      anchor-db:
+        condition: service_healthy
+    volumes:
+      - ./anchor-config:/home/anchor-config:ro
+
+networks:
+  default: {}
+
+volumes:
+  defy_pg:

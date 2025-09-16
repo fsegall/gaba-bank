@@ -1,0 +1,72 @@
+[
+  {
+    "id": "usd-spot",
+    "name": "USD Spot",
+    "risk": "Baixo",
+    "autobuy_on_deposit": true,
+    "allocations": [
+      { "symbol": "USDSTABLE", "weight": 1.0, "min": 1.0, "max": 1.0, "risk": 1.0 }
+    ],
+    "execution": { "slippage_bps": 50, "max_spread_bps": 80, "min_order_centavos": 1000 }
+  },
+  {
+    "id": "usd-vault",
+    "name": "USD Vault (Soroban)",
+    "risk": "Baixo",
+    "autobuy_on_deposit": true,
+    "allocations": [
+      { "symbol": "USDSTABLE", "weight": 1.0, "min": 1.0, "max": 1.0, "risk": 1.0 }
+    ],
+    "execution": { "slippage_bps": 50, "max_spread_bps": 80, "min_order_centavos": 1000 }
+  },
+  {
+    "id": "defy-conservative",
+    "name": "Defy Conservative",
+    "risk": "Baixo",
+    "autobuy_on_deposit": true,
+    "allocations": [
+      { "symbol": "BRLSTABLE", "weight": 0.50, "min": 0.40, "max": 0.60, "risk": 1.0 },
+      { "symbol": "USDSTABLE", "weight": 0.50, "min": 0.40, "max": 0.60, "risk": 1.0 }
+    ],
+    "execution": { "slippage_bps": 30, "max_spread_bps": 40, "min_order_centavos": 1000 }
+  },
+  {
+    "id": "defy-balanced",
+    "name": "Defy Balanced",
+    "risk": "Moderado",
+    "autobuy_on_deposit": true,
+    "allocations": [
+      { "symbol": "BRLSTABLE", "weight": 0.25, "min": 0.15, "max": 0.35, "risk": 1.0 },
+      { "symbol": "USDSTABLE", "weight": 0.35, "min": 0.25, "max": 0.45, "risk": 1.0 },
+      { "symbol": "BTC",       "weight": 0.20, "min": 0.10, "max": 0.30, "risk": 3.0 },
+      { "symbol": "XLM",       "weight": 0.20, "min": 0.10, "max": 0.30, "risk": 3.0 }
+    ],
+    "execution": { "slippage_bps": 50, "max_spread_bps": 80, "min_order_centavos": 1000 }
+  },
+  {
+    "id": "defy-growth",
+    "name": "Defy Growth",
+    "risk": "Alto",
+    "autobuy_on_deposit": true,
+    "allocations": [
+      { "symbol": "BRLSTABLE", "weight": 0.15, "min": 0.10, "max": 0.25, "risk": 1.0 },
+      { "symbol": "USDSTABLE", "weight": 0.25, "min": 0.15, "max": 0.35, "risk": 1.0 },
+      { "symbol": "BTC",       "weight": 0.25, "min": 0.15, "max": 0.35, "risk": 3.0 },
+      { "symbol": "XLM",       "weight": 0.35, "min": 0.20, "max": 0.40, "risk": 3.0 }
+    ],
+    "execution": { "slippage_bps": 75, "max_spread_bps": 120, "min_order_centavos": 1000 }
+  },
+  {
+    "id": "defy-explorer",
+    "name": "Defy Explorer",
+    "risk": "Muito Alto",
+    "autobuy_on_deposit": true,
+    "allocations": [
+      { "symbol": "BRLSTABLE", "weight": 0.10, "min": 0.05, "max": 0.20, "risk": 1.0 },
+      { "symbol": "USDSTABLE", "weight": 0.10, "min": 0.05, "max": 0.20, "risk": 1.0 },
+      { "symbol": "BTC",       "weight": 0.30, "min": 0.15, "max": 0.40, "risk": 3.0 },
+      { "symbol": "XLM",       "weight": 0.50, "min": 0.30, "max": 0.60, "risk": 3.0 }
+    ],
+    "execution": { "slippage_bps": 100, "max_spread_bps": 150, "min_order_centavos": 1000, "daily_loss_break": -10 }
+  }
+]

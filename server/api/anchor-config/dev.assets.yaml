@@ -1,0 +1,33 @@
+# anchor-config/dev.assets.yaml
+items:
+  - id: stellar:BRLD:GCXWBWKZC22G3DR6IJVYFHMNET4KC2MPXZAGHG2HOQZGJAGLYLW356UV
+    distribution_account: GAN2EYOY5JPIG24HUH3FEQQSFDGNPRZAIN272GPZX6MXEMY7FI7GPUH4
+    significant_decimals: 2
+    sep24:
+      enabled: true
+      deposit:
+        enabled: true
+        min_amount: 1
+        max_amount: 1000000
+        methods: ["PIX"]
+      withdraw:
+        enabled: true
+        min_amount: 1
+        max_amount: 1000000
+        methods: ["PIX"]
+
+  - id: stellar:USDC:GCXWBWKZC22G3DR6IJVYFHMNET4KC2MPXZAGHG2HOQZGJAGLYLW356UV
+    distribution_account: GAN2EYOY5JPIG24HUH3FEQQSFDGNPRZAIN272GPZX6MXEMY7FI7GPUH4
+    significant_decimals: 2
+    sep24:
+      enabled: true
+      deposit:
+        enabled: true
+        min_amount: 1
+        max_amount: 1000000
+        methods: ["PIX"]
+      withdraw:
+        enabled: true
+        min_amount: 1
+        max_amount: 1000000
+        methods: ["PIX"]

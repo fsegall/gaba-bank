@@ -1,0 +1,1032 @@
+openapi: 3.1.0
+info:
+  title: Defy Invest API
+  description: |
+    API para o sistema Defy Invest - banco comunitário descentralizado para empreendedores.
+    
+    ## Funcionalidades Principais
+    - **PIX Integration**: Criação de cobranças e pagamentos via Inter PIX
+    - **Trading**: Ordens de compra/venda de ativos digitais
+    - **Portfolio Management**: Gestão de carteiras e posições
+    - **Vault Integration**: Depósitos em vaults descentralizados
+    - **Webhooks**: Processamento de eventos de PSP e execução automática
+    
+    ## Autenticação
+    A API usa headers customizados para identificação de usuário:
+    - `x-user-id`: UUID do usuário (obrigatório para operações que requerem identificação)
+    
+    ## Observabilidade
+    - Métricas Prometheus disponíveis em `/metrics`
+    - Health check em `/health`
+    - Tracing distribuído com OpenTelemetry
+    
+  version: 1.0.0
+  contact:
+    name: Defy Invest Team
+    email: dev@defy.invest
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api
+    description: Servidor de desenvolvimento
+  - url: https://api.defy.invest
+    description: Servidor de produção
+
+paths:
+  # === HEALTH & MONITORING ===
+  /health:
+    get:
+      tags: [System]
+      summary: Health Check
+      description: Verifica o status da API e configurações
+      responses:
+        '200':
+          description: API funcionando normalmente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  autobuy_enabled:
+                    type: boolean
+                    example: false
+                  autobuy_default_product:
+                    type: string
+                    example: "defy-balanced"
+
+  /metrics:
+    get:
+      tags: [System]
+      summary: Prometheus Metrics
+      description: Retorna métricas no formato Prometheus
+      responses:
+        '200':
+          description: Métricas em formato Prometheus
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP process_cpu_user_seconds_total Total user CPU time spent in seconds.
+                  # TYPE process_cpu_user_seconds_total counter
+                  process_cpu_user_seconds_total 0.519491
+
+  # === PIX INTEGRATION ===
+  /pix/__ping:
+    get:
+      tags: [PIX]
+      summary: PIX Service Ping
+      description: Verifica se o serviço PIX está funcionando
+      responses:
+        '200':
+          description: PIX service OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  when:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00.000Z"
+
+  /pix/cob:
+    post:
+      tags: [PIX]
+      summary: Criar Cobrança PIX
+      description: Cria uma nova cobrança PIX para recebimento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount:
+                  type: string
+                  pattern: '^\d{1,10}\.\d{2}$'
+                  description: Valor em reais com 2 casas decimais
+                  example: "100.00"
+                payer:
+                  type: object
+                  description: Dados do pagador (opcional)
+                  properties:
+                    nome:
+                      type: string
+                      minLength: 1
+                      description: Nome do pagador
+                      example: "João Silva"
+                    cpf:
+                      type: string
+                      description: CPF do pagador (apenas números)
+                      example: "12345678901"
+                    cnpj:
+                      type: string
+                      description: CNPJ do pagador (apenas números)
+                      example: "12345678000195"
+                seed:
+                  type: string
+                  description: Seed para geração do TXID (opcional, gera UUID se não informado)
+                  example: "dep_123_1642248600000"
+      responses:
+        '200':
+          description: Cobrança criada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  txid:
+                    type: string
+                    description: ID único da transação
+                    example: "dep123456789012345678901234567890"
+                  qr_code:
+                    type: string
+                    description: QR Code em base64
+                  pixCopiaECola:
+                    type: string
+                    description: Código PIX para copiar e colar
+                    example: "00020126580014br.gov.bcb.pix..."
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /pix/cob/{txid}:
+    get:
+      tags: [PIX]
+      summary: Consultar Cobrança PIX
+      description: Consulta o status de uma cobrança PIX
+      parameters:
+        - name: txid
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9]{26,35}$'
+          description: ID da transação
+          example: "dep123456789012345678901234567890"
+      responses:
+        '200':
+          description: Dados da cobrança
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  txid:
+                    type: string
+                  status:
+                    type: string
+                    enum: [ATIVA, CONCLUIDA, REMOVIDA_PELO_USUARIO_RECEBEDOR, REMOVIDA_PELO_PSP]
+                  valor:
+                    type: object
+                    properties:
+                      original:
+                        type: string
+                        example: "100.00"
+        '404':
+          description: Cobrança não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /pix/pay:
+    post:
+      tags: [PIX]
+      summary: Enviar Pagamento PIX
+      description: Envia um pagamento PIX para uma chave
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chave, amount]
+              properties:
+                idempotency:
+                  type: string
+                  description: Chave de idempotência (opcional se txid for fornecido)
+                  example: "pay_123_1642248600000"
+                txid:
+                  type: string
+                  description: ID da transação (legado, opcional se idempotency for fornecido)
+                  example: "pay123456789012345678901234567890"
+                chave:
+                  type: string
+                  minLength: 1
+                  description: Chave PIX (CPF, CNPJ, email, telefone ou chave aleatória)
+                  example: "12345678901"
+                amount:
+                  type: string
+                  pattern: '^\d{1,10}\.\d{2}$'
+                  description: Valor em reais com 2 casas decimais
+                  example: "50.00"
+                descricao:
+                  type: string
+                  description: Descrição do pagamento
+                  example: "Pagamento de serviços"
+      responses:
+        '200':
+          description: Pagamento enviado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: ID do pagamento
+                  status:
+                    type: string
+                    enum: [PROCESSANDO, CONCLUIDO, NAO_REALIZADO]
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # === TRADING ===
+  /orders:
+    post:
+      tags: [Trading]
+      summary: Criar Ordem
+      description: Cria uma ordem de compra ou venda
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/BuyOrderRequest'
+                - $ref: '#/components/schemas/SellOrderRequest'
+      responses:
+        '200':
+          description: Ordem criada e executada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId:
+                    type: string
+                    format: uuid
+                  txHash:
+                    type: string
+                    description: Hash da transação on-chain
+                  quote:
+                    $ref: '#/components/schemas/QuoteResponse'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Saldo insuficiente (apenas para ordens de venda)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "insufficient_balance"
+                  have:
+                    type: number
+                    example: 0.05
+                  want:
+                    type: number
+                    example: 0.1
+
+    get:
+      tags: [Trading]
+      summary: Listar Ordens
+      description: Lista ordens do usuário ou de um depósito específico
+      parameters:
+        - name: deposit_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrar por ID do depósito
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrar por ID do usuário
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Número máximo de resultados
+      responses:
+        '200':
+          description: Lista de ordens
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+
+  /orders/{id}:
+    get:
+      tags: [Trading]
+      summary: Obter Ordem
+      description: Obtém detalhes de uma ordem específica
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID da ordem
+      responses:
+        '200':
+          description: Dados da ordem
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Order'
+                  - type: object
+                    properties:
+                      trades:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Trade'
+        '404':
+          description: Ordem não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Trading]
+      summary: Cancelar Ordem
+      description: Cancela uma ordem (apenas se estiver aberta ou parcialmente preenchida)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID da ordem
+      responses:
+        '200':
+          description: Ordem cancelada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [cancelled]
+        '422':
+          description: Ordem não pode ser cancelada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "cannot_cancel"
+
+  # === QUOTES ===
+  /quote:
+    get:
+      tags: [Trading]
+      summary: Obter Cotação
+      description: Obtém cotação para um par de ativos
+      parameters:
+        - name: pair
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Z]+-[A-Z]+$'
+          description: Par de ativos (ex: BRL-BTC, USDC-BRL)
+          example: "BRL-BTC"
+        - name: amountIn
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Quantidade de entrada em unidades mínimas
+          example: "1000000"
+      responses:
+        '200':
+          description: Cotação obtida com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteResponse'
+        '409':
+          description: Cotação rejeitada pelo oráculo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "oracle_veto"
+                  message:
+                    type: string
+                  poolMid:
+                    type: number
+                  oraclePrice:
+                    type: number
+
+  # === PORTFOLIO ===
+  /portfolio:
+    get:
+      tags: [Portfolio]
+      summary: Obter Portfolio
+      description: Obtém carteira e ordens do usuário
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do usuário
+      responses:
+        '200':
+          description: Dados do portfolio
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wallets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Wallet'
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+
+  /vaults/{id}/position:
+    get:
+      tags: [Portfolio]
+      summary: Obter Posição no Vault
+      description: Obtém posição do usuário em um vault específico
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID do vault
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do usuário
+      responses:
+        '200':
+          description: Posição no vault
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaultPosition'
+
+  # === SELL ORDERS ===
+  /sell:
+    post:
+      tags: [Trading]
+      summary: Vender Ativo
+      description: Executa venda de ativo com chunking automático
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID do usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SellRequest'
+      responses:
+        '200':
+          description: Venda executada com sucesso
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Order'
+                  - type: object
+                    properties:
+                      trades:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Trade'
+        '400':
+          description: Dados inválidos ou erro na execução
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Usuário não identificado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing x-user-id"
+
+  # === TRADES ===
+  /trades:
+    get:
+      tags: [Trading]
+      summary: Listar Trades
+      description: Lista trades executados
+      parameters:
+        - name: order_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrar por ID da ordem
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Número máximo de resultados
+      responses:
+        '200':
+          description: Lista de trades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trade'
+
+  # === PRODUCTS ===
+  /products:
+    get:
+      tags: [Products]
+      summary: Listar Produtos
+      description: Lista produtos de investimento disponíveis
+      responses:
+        '200':
+          description: Lista de produtos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+  # === WEBHOOKS ===
+  /webhooks/psp:
+    post:
+      tags: [Webhooks]
+      summary: Webhook PSP (Permissivo)
+      description: Recebe webhooks de PSP (sem validação de assinatura)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PspWebhookEvent'
+      responses:
+        '200':
+          description: Webhook processado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+
+  /webhooks/psp/hmac:
+    post:
+      tags: [Webhooks]
+      summary: Webhook PSP (Protegido)
+      description: Recebe webhooks de PSP com validação de assinatura HMAC
+      parameters:
+        - name: x-provider-signature
+          in: header
+          schema:
+            type: string
+          description: Assinatura HMAC do webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PspWebhookEvent'
+      responses:
+        '200':
+          description: Webhook processado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+
+components:
+  schemas:
+    # === ERROR RESPONSES ===
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Tipo do erro
+          example: "invalid_request"
+        message:
+          type: string
+          description: Mensagem de erro
+          example: "Dados inválidos"
+        details:
+          type: object
+          description: Detalhes adicionais do erro
+
+    # === PIX SCHEMAS ===
+    Payer:
+      type: object
+      properties:
+        nome:
+          type: string
+          minLength: 1
+          description: Nome do pagador
+        cpf:
+          type: string
+          description: CPF do pagador (apenas números)
+        cnpj:
+          type: string
+          description: CNPJ do pagador (apenas números)
+
+    # === TRADING SCHEMAS ===
+    BuyOrderRequest:
+      type: object
+      required: [side, symbol, amount_brl_centavos]
+      properties:
+        side:
+          type: string
+          enum: [buy]
+        symbol:
+          type: string
+          minLength: 2
+          maxLength: 16
+          description: Símbolo do ativo
+          example: "BTC"
+        amount_brl_centavos:
+          type: integer
+          minimum: 1
+          description: Valor em centavos de BRL
+          example: 10000
+        slippage_bps:
+          type: integer
+          minimum: 1
+          maximum: 10000
+          default: 50
+          description: Slippage em basis points (0.5% = 50 bps)
+
+    SellOrderRequest:
+      type: object
+      required: [side, symbol, qty]
+      properties:
+        side:
+          type: string
+          enum: [sell]
+        symbol:
+          type: string
+          minLength: 2
+          maxLength: 16
+          description: Símbolo do ativo
+          example: "BTC"
+        qty:
+          type: number
+          minimum: 0.00000001
+          description: Quantidade em unidades do ativo
+          example: 0.05
+        slippage_bps:
+          type: integer
+          minimum: 1
+          maximum: 10000
+          default: 50
+          description: Slippage em basis points
+
+    SellRequest:
+      type: object
+      required: [symbol, amount]
+      properties:
+        symbol:
+          type: string
+          minLength: 2
+          description: Símbolo do ativo
+          example: "BTC"
+        amount:
+          type: string
+          pattern: '^\d+(\.\d+)?$'
+          description: Quantidade em unidades humanas
+          example: "0.05"
+        client_ref:
+          type: string
+          description: Referência do cliente para idempotência
+        chunks:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 1
+          description: Número de chunks para execução
+
+    # === QUOTE SCHEMAS ===
+    QuoteResponse:
+      type: object
+      properties:
+        amountOut:
+          type: string
+          description: Quantidade de saída em unidades mínimas
+        amountIn:
+          type: string
+          description: Quantidade de entrada em unidades mínimas
+        minOut:
+          type: string
+          description: Quantidade mínima de saída (com slippage)
+        poolMid:
+          type: number
+          description: Preço médio da pool
+        route:
+          type: object
+          description: Detalhes da rota de execução
+        oraclePrice:
+          type: number
+          description: Preço do oráculo (quando aplicável)
+
+    # === ORDER SCHEMAS ===
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          nullable: true
+        side:
+          type: string
+          enum: [buy, sell]
+        symbol:
+          type: string
+        amount_brl_centavos:
+          type: integer
+          description: Valor em centavos de BRL
+        filled_brl_centavos:
+          type: integer
+          description: Valor preenchido em centavos de BRL
+        filled_qty:
+          type: number
+          description: Quantidade preenchida
+        avg_price_brl:
+          type: number
+          description: Preço médio em BRL
+        status:
+          type: string
+          enum: [open, filled, partially_filled, cancelled]
+        created_at:
+          type: string
+          format: date-time
+        last_filled_at:
+          type: string
+          format: date-time
+          nullable: true
+        exec_provider:
+          type: string
+          description: Provedor de execução
+        exec_order_ref:
+          type: string
+          description: Referência da ordem no provedor
+        route_json:
+          type: object
+          description: Detalhes da rota de execução
+        exec_fee_native:
+          type: number
+          description: Taxa de execução em unidades nativas
+
+    Trade:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        qty:
+          type: number
+          description: Quantidade negociada
+        price_brl:
+          type: number
+          description: Preço em BRL
+        pool_price_brl:
+          type: number
+          description: Preço da pool em BRL
+        oracle_price_brl:
+          type: number
+          nullable: true
+          description: Preço do oráculo em BRL
+        exec_provider:
+          type: string
+          description: Provedor de execução
+        provider_ref:
+          type: string
+          description: Referência no provedor
+        chunk_ref:
+          type: string
+          description: Referência do chunk
+        route_json:
+          type: object
+          description: Detalhes da rota
+        exec_fee_native:
+          type: number
+          description: Taxa de execução em unidades nativas
+        created_at:
+          type: string
+          format: date-time
+
+    # === PORTFOLIO SCHEMAS ===
+    Wallet:
+      type: object
+      properties:
+        asset:
+          type: string
+          description: Símbolo do ativo
+          example: "BTC"
+        balance:
+          type: string
+          description: Saldo em unidades humanas
+          example: "0.05"
+
+    VaultPosition:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        vault_id:
+          type: string
+        shares:
+          type: string
+          description: Número de shares
+        principal_base_units:
+          type: string
+          description: Principal em unidades base
+
+    # === PRODUCT SCHEMAS ===
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID único do produto
+        name:
+          type: string
+          description: Nome do produto
+        description:
+          type: string
+          description: Descrição do produto
+        allocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Allocation'
+        execution:
+          $ref: '#/components/schemas/ExecutionConfig'
+
+    Allocation:
+      type: object
+      properties:
+        symbol:
+          type: string
+          description: Símbolo do ativo
+        weight:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Peso da alocação (0-1)
+
+    ExecutionConfig:
+      type: object
+      properties:
+        min_order_centavos:
+          type: integer
+          description: Valor mínimo da ordem em centavos
+        slippage_bps:
+          type: integer
+          description: Slippage padrão em basis points
+        max_spread_bps:
+          type: integer
+          description: Spread máximo permitido em basis points
+
+    # === WEBHOOK SCHEMAS ===
+    PspWebhookEvent:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [pix.pago]
+          description: Tipo do evento
+        psp_ref:
+          type: string
+          description: Referência do PSP
+        txid:
+          type: string
+          description: ID da transação
+        valor_centavos:
+          type: integer
+          description: Valor em centavos
+        product_id:
+          type: string
+          description: ID do produto (opcional)
+        user_id:
+          type: string
+          format: uuid
+          description: ID do usuário (opcional)
+
+  # === SECURITY SCHEMES ===
+  securitySchemes:
+    UserIdHeader:
+      type: apiKey
+      in: header
+      name: x-user-id
+      description: ID do usuário (UUID)
+
+security:
+  - UserIdHeader: []
+
+tags:
+  - name: System
+    description: Endpoints de sistema e monitoramento
+  - name: PIX
+    description: Integração com PIX (Inter)
+  - name: Trading
+    description: Operações de trading e ordens
+  - name: Portfolio
+    description: Gestão de portfolio e posições
+  - name: Products
+    description: Produtos de investimento
+  - name: Webhooks
+    description: Webhooks para integração externa

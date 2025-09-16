@@ -1,0 +1,24 @@
+.env
+secrets/
+*.pfx
+*.key
+*.crt
+.env.*
+# Ignorar arquivos .env e .env.* dentro de apis/ recursivamente
+apis/**/.env
+apis/**/.env.*
+
+# Ignorar arquivos postman de ambiente
+apis/**/env*.postman.json
+apis/**/env*.json
+
+# Ignorar pastas ops/ e secrets/ recursivamente
+ops/**
+secrets/**
+target/
+Cargo.lock
+
+.env.local
+.env.docker
+/run/secrets/*.env.anchor.local
+.env.anchor.local

@@ -1,0 +1,75 @@
+openapi: 3.1.0
+info:
+  title: Defy Invest API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /depositos:
+    post:
+      summary: Criar cobrança Pix
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [valor_centavos]
+              properties:
+                valor_centavos: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: QR de pagamento
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  txid: { type: string }
+                  qr_code: { type: string }
+                  copia_cola: { type: string }
+  /webhooks/psp:
+    post:
+      summary: Webhook de confirmação Pix
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PixPagoEvt'
+      responses:
+        '200': { description: ok }
+  /orders:
+    post:
+      summary: Criar ordem de compra/venda imediata
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [side, asset, amount_brl_centavos]
+              properties:
+                side: { type: string, enum: [buy, sell] }
+                asset: { type: string, example: USDC }
+                amount_brl_centavos: { type: integer, minimum: 1 }
+                slippage_bps: { type: integer, minimum: 0, maximum: 1000 }
+      responses:
+        '200': { description: ordem criada }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    PixPagoEvt:
+      type: object
+      required: [type, psp_ref, txid, valor_centavos]
+      properties:
+        type: { type: string, enum: [pix.pago] }
+        psp_ref: { type: string }
+        txid: { type: string }
+        valor_centavos: { type: integer }
+        product_id: { type: string, nullable: true }
