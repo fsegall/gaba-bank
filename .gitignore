@@ -1,0 +1,32 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Node / PNPM / NPM
+node_modules/
+**/node_modules/
+.pnpm-store/
+.npm/
+
+# Builds / dist / cache
+/dist/
+**/dist/
+/build/
+**/build/
+/.cache/
+**/.cache/
+.vite/
+**/.vite/
+coverage/
+**/coverage/
+
+# Env & local configs
+.env
+.env.*
+**/.env
+**/.env.*
+init && git add . && git commit -m Initial
